@@ -181,14 +181,19 @@ export class MockMangaDexSource implements ISource {
    * Get page URLs for a chapter
    */
   async getPageList(chapterId: string): Promise<string[]> {
+    console.log('[MockMangaDex] getPageList called for:', chapterId)
     await this.delay(300)
 
-    // Generate mock page URLs (15 pages per chapter)
+    // Generate mock page URLs using placeholder service (15 pages per chapter)
     const pages: string[] = []
+    const colors = ['FF5722', '9C27B0', '2196F3', '4CAF50', 'FF9800', 'E91E63']
+    
     for (let i = 1; i <= 15; i++) {
-      pages.push(`https://uploads.mangadex.org/data/${chapterId}/${i}.jpg`)
+      const color = colors[i % colors.length]
+      pages.push(`https://placehold.co/800x1200/${color}/white?text=Page+${i}`)
     }
 
+    console.log('[MockMangaDex] Generated', pages.length, 'pages')
     return pages
   }
 

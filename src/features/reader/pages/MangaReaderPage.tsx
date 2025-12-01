@@ -31,6 +31,15 @@ function MangaReaderPage() {
   const hasNextChapter = currentChapterIndex < chapters.length - 1
   const hasPrevChapter = currentChapterIndex > 0
 
+  // Scroll to page helper
+  const scrollToPage = useCallback((pageIndex: number) => {
+    const pageElement = document.getElementById(`page-${pageIndex}`)
+    if (pageElement) {
+      pageElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      setCurrentPage(pageIndex)
+    }
+  }, [])
+
   // Fetch pages for current chapter
   useEffect(() => {
     const fetchPages = async () => {
@@ -52,13 +61,15 @@ function MangaReaderPage() {
         setPages(pageUrls)
         
         // Resume from last read page
-        if (currentChapter.lastPageRead > 0) {
-          setCurrentPage(currentChapter.lastPageRead)
-        } else {
-          setCurrentPage(0)
-        }
-
+        const startPage = currentChapter.lastPageRead > 0 ? currentChapter.lastPageRead : 0
+        setCurrentPage(startPage)
+        
         setIsLoading(false)
+        
+        // Scroll to the resume page after a short delay
+        setTimeout(() => {
+          scrollToPage(startPage)
+        }, 100)
       } catch (err) {
         console.error('Failed to fetch pages:', err)
         setError(err instanceof Error ? err.message : 'Failed to load pages')
@@ -67,7 +78,7 @@ function MangaReaderPage() {
     }
 
     fetchPages()
-  }, [manga, currentChapter])
+  }, [manga, currentChapter, scrollToPage])
 
   // Save progress when page changes
   useEffect(() => {
@@ -89,23 +100,23 @@ function MangaReaderPage() {
   // Navigation handlers
   const goToNextPage = useCallback(() => {
     if (currentPage < pages.length - 1) {
-      setCurrentPage(prev => prev + 1)
+      scrollToPage(currentPage + 1)
     } else if (hasNextChapter) {
       // Go to next chapter
       const nextChapter = chapters[currentChapterIndex + 1]
       navigate(`/reader/${mangaId}/${nextChapter.id}`)
     }
-  }, [currentPage, pages.length, hasNextChapter, chapters, currentChapterIndex, mangaId, navigate])
+  }, [currentPage, pages.length, hasNextChapter, chapters, currentChapterIndex, mangaId, navigate, scrollToPage])
 
   const goToPrevPage = useCallback(() => {
     if (currentPage > 0) {
-      setCurrentPage(prev => prev - 1)
+      scrollToPage(currentPage - 1)
     } else if (hasPrevChapter) {
       // Go to previous chapter
       const prevChapter = chapters[currentChapterIndex - 1]
       navigate(`/reader/${mangaId}/${prevChapter.id}`)
     }
-  }, [currentPage, hasPrevChapter, chapters, currentChapterIndex, mangaId, navigate])
+  }, [currentPage, hasPrevChapter, chapters, currentChapterIndex, mangaId, navigate, scrollToPage])
 
   // Keyboard navigation
   useEffect(() => {
@@ -204,11 +215,15 @@ function MangaReaderPage() {
       )}
 
       {/* Reader Area - Vertical Scroll (Webtoon Mode) */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      <div 
+        className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth"
+        id="reader-container"
+      >
         <div className="max-w-4xl mx-auto">
           {pages.map((pageUrl, index) => (
             <div
               key={index}
+              id={`page-${index}`}
               className="relative"
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect()
@@ -228,14 +243,7 @@ function MangaReaderPage() {
                 src={pageUrl}
                 alt={`Page ${index + 1}`}
                 className={`w-full h-auto block ${invertColors ? 'invert' : ''}`}
-                loading={index === currentPage ? 'eager' : 'lazy'}
-                onLoad={() => {
-                  // Mark current page
-                  const imgElement = document.querySelector(`img[alt="Page ${currentPage + 1}"]`)
-                  if (imgElement) {
-                    imgElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                  }
-                }}
+                loading="lazy"
               />
               
               {/* Page number overlay */}
