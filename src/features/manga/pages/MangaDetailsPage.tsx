@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Heart, Download, RefreshCw, MoreVertical, BookOpen, CheckCircle2, Circle, Plus, X } from 'lucide-react'
+import { ArrowLeft, Heart, Download, RefreshCw, MoreVertical, BookOpen, CheckCircle2, Circle, Plus, X, CheckCheck } from 'lucide-react'
 import { useManga, useMangaActions } from '../../../hooks/useLibrary'
 import { useChapters, useChapterActions } from '../../../hooks/useChapters'
 import { useAddToLibrary, useSourceManga, useSourceChapters } from '../../../hooks/useSource'
@@ -202,6 +202,24 @@ function MangaDetailsPage() {
     await toggleBookmark(chapterId)
   }
 
+  const handleMarkAllAsRead = async () => {
+    if (!isInLibrary) {
+      alert('Add manga to library first to track read progress!')
+      return
+    }
+    const allChapterIds = chapters.map(ch => ch.id)
+    await markMultipleAsRead(allChapterIds)
+  }
+
+  const handleMarkAllAsUnread = async () => {
+    if (!isInLibrary) {
+      alert('Add manga to library first to track read progress!')
+      return
+    }
+    const allChapterIds = chapters.map(ch => ch.id)
+    await markMultipleAsUnread(allChapterIds)
+  }
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-3">
@@ -388,15 +406,37 @@ function MangaDetailsPage() {
             </div>
           )}
 
-          {/* Chapter Count Info */}
-          <div className="flex items-center justify-between mb-4 pb-4 border-b border-outline-variant">
-            <h2 className="text-xl font-semibold text-on-surface">
-              Chapters ({chapters.length})
-            </h2>
-            {unreadCount > 0 && (
-              <span className="px-3 py-1 bg-primary/20 text-primary rounded-full text-sm font-medium">
-                {unreadCount} Unread
-              </span>
+          {/* Chapter Count Info & Actions */}
+          <div className="space-y-3 mb-4 pb-4 border-b border-outline-variant">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-on-surface">
+                Chapters ({chapters.length})
+              </h2>
+              {unreadCount > 0 && (
+                <span className="px-3 py-1 bg-primary/20 text-primary rounded-full text-sm font-medium">
+                  {unreadCount} Unread
+                </span>
+              )}
+            </div>
+            
+            {/* Bulk Actions (only show when in library) */}
+            {isInLibrary && chapters.length > 0 && (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleMarkAllAsRead}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary/20 text-primary rounded-full text-sm font-medium hover:bg-primary/30 transition-colors"
+                >
+                  <CheckCheck size={16} />
+                  Mark all as read
+                </button>
+                <button
+                  onClick={handleMarkAllAsUnread}
+                  className="flex items-center gap-2 px-3 py-2 bg-surface-variant text-on-surface-variant rounded-full text-sm font-medium hover:bg-outline-variant transition-colors"
+                >
+                  <Circle size={16} />
+                  Mark all as unread
+                </button>
+              </div>
             )}
           </div>
         </div>
