@@ -10,6 +10,7 @@ import BrowsePage from './features/browse/pages/BrowsePage'
 import HistoryPage from './features/history/pages/HistoryPage'
 import MorePage from './features/more/pages/MorePage'
 import MangaDetailsPage from './features/manga/pages/MangaDetailsPage'
+import MangaReaderPage from './features/reader/pages/MangaReaderPage'
 
 function App() {
   const theme = useThemeStore((state) => state.theme)
@@ -25,15 +26,23 @@ function App() {
   }, [])
 
   return (
-    <MainLayout>
-      <Routes>
-        <Route path="/" element={<LibraryPage />} />
-        <Route path="/browse" element={<BrowsePage />} />
-        <Route path="/history" element={<HistoryPage />} />
-        <Route path="/more" element={<MorePage />} />
-        <Route path="/manga/:mangaId" element={<MangaDetailsPage />} />
-      </Routes>
-    </MainLayout>
+    <Routes>
+      {/* Reader routes - NO MainLayout (fullscreen) */}
+      <Route path="/reader/:mangaId/:chapterId" element={<MangaReaderPage />} />
+      
+      {/* Main app routes - WITH MainLayout */}
+      <Route path="*" element={
+        <MainLayout>
+          <Routes>
+            <Route path="/" element={<LibraryPage />} />
+            <Route path="/browse" element={<BrowsePage />} />
+            <Route path="/history" element={<HistoryPage />} />
+            <Route path="/more" element={<MorePage />} />
+            <Route path="/manga/:mangaId" element={<MangaDetailsPage />} />
+          </Routes>
+        </MainLayout>
+      } />
+    </Routes>
   )
 }
 

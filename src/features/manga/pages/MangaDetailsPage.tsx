@@ -159,10 +159,8 @@ function MangaDetailsPage() {
   }
 
   const handleChapterClick = async (chapterId: string) => {
-    // Open reader (Phase 5 - coming soon)
-    alert('📖 Reader coming in Phase 5!\n\nFor now, use the 3-dot menu to mark chapters as read.')
-    // TODO: Navigate to reader page
-    // navigate(`/reader/${mangaId}/${chapterId}`)
+    // Navigate to reader
+    navigate(`/reader/${mangaId}/${chapterId}`)
   }
 
   const handleMarkPreviousAsRead = async (chapterIndex: number) => {
