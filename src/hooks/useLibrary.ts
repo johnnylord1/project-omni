@@ -10,7 +10,8 @@ export function useLibrary() {
   const manga = useLiveQuery(
     async () => {
       const allManga = await db.manga.toArray()
-      const libraryManga = allManga.filter(m => m.inLibrary)
+      const libraryManga = allManga.filter(m => m.inLibrary === true)
+      console.log('[useLibrary] Library count:', libraryManga.length)
       return libraryManga.sort((a, b) => (b.lastReadAt || 0) - (a.lastReadAt || 0))
     },
     []
@@ -64,13 +65,24 @@ export function useMangaByCategory(categoryId: string) {
  */
 export function useManga(mangaId: string | undefined) {
   const manga = useLiveQuery(
-    () => mangaId ? db.manga.get(mangaId) : undefined,
+    async () => {
+      if (!mangaId) return null // Use null to indicate "no query"
+      console.log('[useManga] Querying DB for:', mangaId)
+      const result = await db.manga.get(mangaId)
+      console.log('[useManga] Query result:', result ? result.title : 'NOT IN DATABASE')
+      return result || null // Return null if not found (instead of undefined)
+    },
     [mangaId]
   )
 
+  // useLiveQuery returns undefined while loading
+  // null means query completed but not found
+  // object means found
+  const isLoading = manga === undefined
+
   return {
-    manga,
-    isLoading: manga === undefined && mangaId !== undefined,
+    manga: manga === null ? undefined : manga,
+    isLoading,
   }
 }
 
@@ -86,13 +98,36 @@ export function useMangaActions() {
   }
 
   const removeFromLibrary = async (mangaId: string) => {
+    console.log('[removeFromLibrary] Called with ID:', mangaId)
+    
     const manga = await db.manga.get(mangaId)
-    if (manga) {
-      await db.manga.put({
-        ...manga,
-        inLibrary: false,
-      })
+    console.log('[removeFromLibrary] Found manga:', manga ? manga.title : 'NOT FOUND')
+    
+    if (!manga) {
+      console.error('[removeFromLibrary] Manga not found in database!')
+      throw new Error(`Manga not found: ${mangaId}`)
     }
+    
+    console.log('[removeFromLibrary] Before update - inLibrary:', manga.inLibrary)
+    
+    await db.manga.put({
+      ...manga,
+      inLibrary: false,
+      favorite: false, // Also unfavorite when removing
+    })
+    
+    console.log('[removeFromLibrary] After update - checking...')
+    
+    // Verify the update
+    const updated = await db.manga.get(mangaId)
+    console.log('[removeFromLibrary] Verified - inLibrary:', updated?.inLibrary)
+    
+    if (updated?.inLibrary) {
+      console.error('[removeFromLibrary] UPDATE FAILED - manga still in library!')
+      throw new Error('Failed to update manga')
+    }
+    
+    console.log('[removeFromLibrary] ✅ Successfully removed from library')
   }
 
   const toggleFavorite = async (mangaId: string) => {

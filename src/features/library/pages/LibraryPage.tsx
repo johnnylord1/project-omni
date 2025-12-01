@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Library as LibraryIcon, Plus, Search, Filter, X } from 'lucide-react'
 import { useLibrary, useMangaActions } from '../../../hooks/useLibrary'
 import { seedMockData, clearMockData } from '../../../db/mockData'
 import MangaCard from '../../../components/shared/MangaCard'
 
 function LibraryPage() {
+  const navigate = useNavigate()
   const { manga, isLoading } = useLibrary()
   const { removeFromLibrary } = useMangaActions()
   const [isSeeded, setIsSeeded] = useState(false)
@@ -27,10 +29,25 @@ function LibraryPage() {
     setIsSeeded(true)
   }
 
-  const handleRemoveFromLibrary = async (mangaId: string, title: string) => {
-    if (confirm(`Remove "${title}" from library?`)) {
+  const handleRemoveFromLibrary = async (mangaId: string, title: string, event: React.MouseEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+    
+    console.log('=== LIBRARY X BUTTON CLICKED ===')
+    console.log('Manga ID:', mangaId)
+    console.log('Title:', title)
+    
+    // Tachiyomi doesn't use confirm for X button - just remove directly
+    try {
+      console.log('Calling removeFromLibrary...')
       await removeFromLibrary(mangaId)
+      console.log('✅ Successfully removed:', mangaId)
+    } catch (error) {
+      console.error('❌ Failed to remove from library:', error)
+      alert(`Failed to remove "${title}":\n${error}`)
     }
+    
+    console.log('=== LIBRARY REMOVE END ===')
   }
 
   if (isLoading) {
@@ -106,15 +123,12 @@ function LibraryPage() {
               <div key={item.id} className="relative group">
                 <MangaCard
                   manga={item}
-                  onClick={() => console.log('Clicked:', item.title)}
+                  onClick={() => navigate(`/manga/${item.id}`)}
                 />
                 {/* Remove from Library Button - Same position as + button in Browse */}
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleRemoveFromLibrary(item.id, item.title)
-                  }}
-                  className="absolute top-2 left-2 bg-error/90 backdrop-blur-sm text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-lg"
+                  onClick={(e) => handleRemoveFromLibrary(item.id, item.title, e)}
+                  className="absolute top-2 left-2 bg-error/90 backdrop-blur-sm text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-lg z-10"
                   title="Remove from Library"
                 >
                   <X size={20} strokeWidth={2.5} />

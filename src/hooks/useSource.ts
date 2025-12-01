@@ -29,36 +29,48 @@ export function useSourceSearch(sourceId: string, query: string, enabled: boolea
 /**
  * Hook to get manga details from a source
  */
-export function useSourceManga(sourceId: string, mangaId: string) {
+export function useSourceManga(sourceId: string, mangaId: string, enabled: boolean = true) {
   return useQuery({
     queryKey: ['source-manga', sourceId, mangaId],
     queryFn: async () => {
+      console.log('[useSourceManga] Fetching:', { sourceId, mangaId })
+      
       const source = sourceManager.getSource(sourceId)
       if (!source) {
         throw new Error(`Source not found: ${sourceId}`)
       }
       
-      return source.getMangaDetails(mangaId)
+      const result = await source.getMangaDetails(mangaId)
+      console.log('[useSourceManga] Success:', result.title)
+      return result
     },
+    enabled: enabled && !!sourceId && !!mangaId,
     staleTime: 10 * 60 * 1000, // 10 minutes
+    retry: 2,
   })
 }
 
 /**
  * Hook to get chapters from a source
  */
-export function useSourceChapters(sourceId: string, mangaId: string) {
+export function useSourceChapters(sourceId: string, mangaId: string, enabled: boolean = true) {
   return useQuery({
     queryKey: ['source-chapters', sourceId, mangaId],
     queryFn: async () => {
+      console.log('[useSourceChapters] Fetching:', { sourceId, mangaId })
+      
       const source = sourceManager.getSource(sourceId)
       if (!source) {
         throw new Error(`Source not found: ${sourceId}`)
       }
       
-      return source.getChapters(mangaId)
+      const result = await source.getChapters(mangaId)
+      console.log('[useSourceChapters] Success - chapter count:', result.length)
+      return result
     },
+    enabled: enabled && !!sourceId && !!mangaId,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
   })
 }
 

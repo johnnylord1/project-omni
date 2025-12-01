@@ -7,13 +7,18 @@ import type { Chapter } from '../types/manga'
  */
 export function useChapters(mangaId: string | undefined) {
   const chapters = useLiveQuery(
-    () => mangaId 
-      ? db.chapters
-          .where('mangaId')
-          .equals(mangaId)
-          .reverse()
-          .sortBy('chapterNumber')
-      : undefined,
+    async () => {
+      if (!mangaId) return []
+      
+      const result = await db.chapters
+        .where('mangaId')
+        .equals(mangaId)
+        .reverse()
+        .sortBy('chapterNumber')
+      
+      console.log('[useChapters] DB chapters for', mangaId, ':', result.length)
+      return result
+    },
     [mangaId]
   )
 
@@ -31,7 +36,7 @@ export function useChapters(mangaId: string | undefined) {
   return {
     chapters: chapters ?? [],
     unreadCount: unreadCount ?? 0,
-    isLoading: chapters === undefined,
+    isLoading: mangaId ? chapters === undefined : false,
   }
 }
 

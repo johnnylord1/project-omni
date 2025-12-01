@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Compass, Search, TrendingUp, Clock as ClockIcon, Plus } from 'lucide-react'
 import { useSources } from '../../../hooks/useSources'
 import { useSourcePopular, useSourceLatest, useSourceSearch, useAddToLibrary } from '../../../hooks/useSource'
@@ -8,6 +9,7 @@ import { transformSourceManga } from '../../../services/transformers'
 type BrowseTab = 'popular' | 'latest' | 'search'
 
 function BrowsePage() {
+  const navigate = useNavigate()
   const { sources, isLoading: sourcesLoading } = useSources()
   const [selectedSourceId, setSelectedSourceId] = useState<string>('')
   const [activeTab, setActiveTab] = useState<BrowseTab>('popular')
@@ -37,7 +39,8 @@ function BrowsePage() {
     }
   }
 
-  const handleAddToLibrary = async (sourceMangaId: string) => {
+  const handleAddToLibrary = async (sourceMangaId: string, event: React.MouseEvent) => {
+    event.stopPropagation() // Prevent card click
     if (!sourceId) return
     
     try {
@@ -46,11 +49,18 @@ function BrowsePage() {
         mangaId: sourceMangaId,
         categories: ['default'],
       })
-      alert(`✅ "${result.manga.title}" added to library!\n\nGo to Library tab to see it.`)
+      alert(`✅ "${result.manga.title}" added to library!`)
     } catch (error) {
       console.error('Failed to add to library:', error)
       alert(`❌ Failed to add to library: ${error}`)
     }
+  }
+
+  const handleMangaClick = async (sourceMangaId: string) => {
+    // Just navigate to details (do NOT add to library)
+    if (!sourceId) return
+    const dbMangaId = `${sourceId}-${sourceMangaId}`
+    navigate(`/manga/${dbMangaId}`)
   }
 
   // Determine which data to show
@@ -157,24 +167,21 @@ function BrowsePage() {
             {displayData.map((sourceManga) => {
               const manga = transformSourceManga(sourceManga, sourceId)
               return (
-                <div key={sourceManga.id} className="relative group">
-                  <MangaCard
-                    manga={manga}
-                    onClick={() => console.log('View details:', sourceManga.title)}
-                  />
-                  {/* Add to Library Button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleAddToLibrary(sourceManga.id)
-                    }}
-                    disabled={addToLibrary.isPending}
-                    className="absolute top-2 left-2 bg-primary/90 backdrop-blur-sm text-on-primary rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                    title="Add to Library"
-                  >
-                    <Plus size={20} strokeWidth={2.5} />
-                  </button>
-                </div>
+              <div key={sourceManga.id} className="relative group">
+                <MangaCard
+                  manga={manga}
+                  onClick={() => handleMangaClick(sourceManga.id)}
+                />
+                {/* Add to Library Button */}
+                <button
+                  onClick={(e) => handleAddToLibrary(sourceManga.id, e)}
+                  disabled={addToLibrary.isPending}
+                  className="absolute top-2 left-2 bg-primary/90 backdrop-blur-sm text-on-primary rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                  title="Add to Library & View Details"
+                >
+                  <Plus size={20} strokeWidth={2.5} />
+                </button>
+              </div>
               )
             })}
           </div>

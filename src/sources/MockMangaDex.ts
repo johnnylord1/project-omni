@@ -137,13 +137,18 @@ export class MockMangaDexSource implements ISource {
    * Get manga details
    */
   async getMangaDetails(mangaId: string): Promise<SourceManga> {
+    console.log('[MockMangaDex] getMangaDetails called with:', mangaId)
+    console.log('[MockMangaDex] Available manga IDs:', this.mockManga.map(m => m.id))
+    
     await this.delay(200)
 
     const manga = this.mockManga.find(m => m.id === mangaId)
     if (!manga) {
-      throw new Error(`Manga not found: ${mangaId}`)
+      console.error('[MockMangaDex] Manga not found:', mangaId)
+      throw new Error(`Manga not found in MockMangaDex: ${mangaId}`)
     }
 
+    console.log('[MockMangaDex] Found manga:', manga.title)
     return manga
   }
 

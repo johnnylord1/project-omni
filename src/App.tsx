@@ -9,6 +9,7 @@ import LibraryPage from './features/library/pages/LibraryPage'
 import BrowsePage from './features/browse/pages/BrowsePage'
 import HistoryPage from './features/history/pages/HistoryPage'
 import MorePage from './features/more/pages/MorePage'
+import MangaDetailsPage from './features/manga/pages/MangaDetailsPage'
 
 function App() {
   const theme = useThemeStore((state) => state.theme)
@@ -30,6 +31,7 @@ function App() {
         <Route path="/browse" element={<BrowsePage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/more" element={<MorePage />} />
+        <Route path="/manga/:mangaId" element={<MangaDetailsPage />} />
       </Routes>
     </MainLayout>
   )
