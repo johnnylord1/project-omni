@@ -1,0 +1,147 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Material Design 3 - CSS Variables Theming System */
+
+:root {
+  /* Light Mode (Default for now, will be overridden) */
+  --color-primary: #4CAF50;
+  --color-on-primary: #FFFFFF;
+  --color-primary-container: #C8E6C9;
+  --color-on-primary-container: #1B5E20;
+  
+  --color-surface: #FEFBFF;
+  --color-surface-variant: #E7E0EC;
+  --color-on-surface: #1C1B1F;
+  --color-on-surface-variant: #49454F;
+  
+  --color-background: #FEFBFF;
+  --color-on-background: #1C1B1F;
+  
+  --color-outline: #79747E;
+  --color-outline-variant: #CAC4D0;
+  
+  --color-error: #B3261E;
+  --color-on-error: #FFFFFF;
+  
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+  
+  /* Elevation Shadows */
+  --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
+  --elevation-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+  --elevation-3: 0 4px 8px 3px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Dark Mode Theme (Default for Manga Reader) */
+[data-theme="dark"] {
+  --color-primary: #4CAF50;
+  --color-on-primary: #003910;
+  --color-primary-container: #00531A;
+  --color-on-primary-container: #A5D6A7;
+  
+  --color-surface: #1C1B1F;
+  --color-surface-variant: #49454F;
+  --color-on-surface: #E6E1E5;
+  --color-on-surface-variant: #CAC4D0;
+  
+  --color-background: #141218;
+  --color-on-background: #E6E1E5;
+  
+  --color-outline: #938F99;
+  --color-outline-variant: #49454F;
+  
+  --color-error: #F2B8B5;
+  --color-on-error: #601410;
+}
+
+/* AMOLED Mode (Pure Black) */
+[data-theme="amoled"] {
+  --color-primary: #4CAF50;
+  --color-on-primary: #003910;
+  --color-primary-container: #00531A;
+  --color-on-primary-container: #A5D6A7;
+  
+  --color-surface: #000000;
+  --color-surface-variant: #1C1B1F;
+  --color-on-surface: #E6E1E5;
+  --color-on-surface-variant: #CAC4D0;
+  
+  --color-background: #000000;
+  --color-on-background: #E6E1E5;
+  
+  --color-outline: #938F99;
+  --color-outline-variant: #49454F;
+  
+  --color-error: #F2B8B5;
+  --color-on-error: #601410;
+}
+
+/* Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-background);
+  color: var(--color-on-background);
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Scrollbar Styling (Dark Theme) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-outline);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+/* Material Ripple Effect (Will be enhanced with JS later) */
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* Utility Classes */
+.surface-elevation-1 {
+  box-shadow: var(--elevation-1);
+}
+
+.surface-elevation-2 {
+  box-shadow: var(--elevation-2);
+}
+
+.surface-elevation-3 {
+  box-shadow: var(--elevation-3);
+}
+
