@@ -66,11 +66,45 @@ All colors are CSS variables for runtime theming.
 ## 📋 Development Phases
 
 - [x] **Phase 1:** Foundation & Theming System
-- [ ] **Phase 2:** Local Database (Dexie)
+- [x] **Phase 2:** Local Database (Dexie)
 - [ ] **Phase 3:** Source Engine
 - [ ] **Phase 4:** UI Implementation (Library & Browse)
 - [ ] **Phase 5:** Readers (Manga & Novel)
 - [ ] **Phase 6:** Settings & Advanced Features
+
+## 💾 Database Schema
+
+**Powered by Dexie (IndexedDB)**
+
+- **Manga:** Core manga metadata (title, cover, author, status, favorites)
+- **Chapters:** Chapter list with reading progress tracking
+- **History:** Reading history with timestamps
+- **Categories:** Custom library organization
+- **Sources:** Extension/source management
+- **Downloads:** Offline reading support
+
+All data is stored **locally** - no external backend required.
+
+## 🔧 Available Hooks
+
+```typescript
+// Library management
+useLibrary() - Fetch all library manga
+useFavorites() - Fetch favorite manga
+useManga(id) - Get single manga details
+
+// Chapter operations
+useChapters(mangaId) - Get chapters for a manga
+useChapterActions() - Mark read/unread, update progress
+
+// History tracking
+useHistory() - Get reading history
+useHistoryActions() - Clear history, remove entries
+
+// Categories
+useCategories() - Fetch all categories
+useCategoryActions() - Create, update, delete categories
+```
 
 ## 📄 License
 
@@ -78,5 +112,5 @@ MIT License - Open Source
 
 ---
 
-**Status:** Phase 1 Complete ✅
+**Status:** Phase 2 Complete ✅
 
