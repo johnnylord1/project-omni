@@ -5,6 +5,7 @@ import { useChapters, useChapterActions } from '../../../hooks/useChapters'
 import { useAddToLibrary, useSourceManga, useSourceChapters } from '../../../hooks/useSource'
 import { formatDistanceToNow } from '../../../utils/dateUtils'
 import ChapterMenu from '../components/ChapterMenu'
+import MangaOptionsMenu from '../components/MangaOptionsMenu'
 import type { Chapter } from '../../../types/manga'
 
 function MangaDetailsPage() {
@@ -220,6 +221,12 @@ function MangaDetailsPage() {
     await markMultipleAsUnread(allChapterIds)
   }
 
+  const handleOpenWebView = () => {
+    if (manga?.url) {
+      window.open(manga.url, '_blank')
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-3">
@@ -268,15 +275,26 @@ function MangaDetailsPage() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Header with Back Button */}
+      {/* Header with Back Button and Options Menu */}
       <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-outline-variant z-10 px-4 py-3">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-on-surface hover:text-primary transition-colors"
-        >
-          <ArrowLeft size={24} />
-          <span className="font-medium">Back</span>
-        </button>
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-on-surface hover:text-primary transition-colors"
+          >
+            <ArrowLeft size={24} />
+            <span className="font-medium">Back</span>
+          </button>
+
+          {/* 3-Dot Options Menu */}
+          <MangaOptionsMenu
+            isInLibrary={isInLibrary}
+            onMarkAllAsRead={handleMarkAllAsRead}
+            onMarkAllAsUnread={handleMarkAllAsUnread}
+            onOpenWebView={handleOpenWebView}
+            mangaUrl={manga?.url}
+          />
+        </div>
       </div>
 
       {/* Content */}
@@ -406,37 +424,15 @@ function MangaDetailsPage() {
             </div>
           )}
 
-          {/* Chapter Count Info & Actions */}
-          <div className="space-y-3 mb-4 pb-4 border-b border-outline-variant">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-on-surface">
-                Chapters ({chapters.length})
-              </h2>
-              {unreadCount > 0 && (
-                <span className="px-3 py-1 bg-primary/20 text-primary rounded-full text-sm font-medium">
-                  {unreadCount} Unread
-                </span>
-              )}
-            </div>
-            
-            {/* Bulk Actions (only show when in library) */}
-            {isInLibrary && chapters.length > 0 && (
-              <div className="flex gap-2">
-                <button
-                  onClick={handleMarkAllAsRead}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary/20 text-primary rounded-full text-sm font-medium hover:bg-primary/30 transition-colors"
-                >
-                  <CheckCheck size={16} />
-                  Mark all as read
-                </button>
-                <button
-                  onClick={handleMarkAllAsUnread}
-                  className="flex items-center gap-2 px-3 py-2 bg-surface-variant text-on-surface-variant rounded-full text-sm font-medium hover:bg-outline-variant transition-colors"
-                >
-                  <Circle size={16} />
-                  Mark all as unread
-                </button>
-              </div>
+          {/* Chapter Count Info */}
+          <div className="flex items-center justify-between mb-4 pb-4 border-b border-outline-variant">
+            <h2 className="text-xl font-semibold text-on-surface">
+              Chapters ({chapters.length})
+            </h2>
+            {unreadCount > 0 && (
+              <span className="px-3 py-1 bg-primary/20 text-primary rounded-full text-sm font-medium">
+                {unreadCount} Unread
+              </span>
             )}
           </div>
         </div>
