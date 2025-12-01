@@ -16,7 +16,7 @@ export async function seedMockData() {
 
   console.log('Seeding mock data...')
 
-  // Mock Manga Data
+  // Mock Manga Data - NOT in library by default
   const mockManga: Manga[] = [
     {
       id: 'mangadex-1',
@@ -28,12 +28,11 @@ export async function seedMockData() {
       description: 'The story follows the adventures of Monkey D. Luffy, a boy whose body gained the properties of rubber after unintentionally eating a Devil Fruit.',
       genre: ['Action', 'Adventure', 'Comedy', 'Fantasy'],
       status: MangaStatus.ONGOING,
-      cover: 'https://uploads.mangadex.org/covers/a1c7c817-4e59-43b7-9365-09675a149a6f/cover.jpg',
-      favorite: true,
-      inLibrary: true,
-      categories: ['reading'],
-      lastReadAt: Date.now() - 3600000, // 1 hour ago
-      unreadCount: 5,
+      cover: 'https://placehold.co/400x600/FF5722/white?text=One+Piece',
+      favorite: false,
+      inLibrary: false,
+      categories: [],
+      unreadCount: 0,
     },
     {
       id: 'mangadex-2',
@@ -45,11 +44,10 @@ export async function seedMockData() {
       description: 'Centuries ago, mankind was slaughtered to near extinction by monstrous humanoid creatures called titans.',
       genre: ['Action', 'Drama', 'Fantasy', 'Mystery'],
       status: MangaStatus.COMPLETED,
-      cover: 'https://uploads.mangadex.org/covers/304ceac3-8cdb-4fe7-acf7-2b6ff7a60613/cover.jpg',
-      favorite: true,
-      inLibrary: true,
-      categories: ['completed'],
-      lastReadAt: Date.now() - 86400000, // 1 day ago
+      cover: 'https://placehold.co/400x600/795548/white?text=Attack+on+Titan',
+      favorite: false,
+      inLibrary: false,
+      categories: [],
       unreadCount: 0,
     },
     {
@@ -62,12 +60,11 @@ export async function seedMockData() {
       description: 'Hidden in plain sight, an age-old conflict rages on. Supernatural monsters known as "Curses" terrorize humanity from the shadows.',
       genre: ['Action', 'Supernatural', 'School Life'],
       status: MangaStatus.ONGOING,
-      cover: 'https://uploads.mangadex.org/covers/0b18e6e4-c429-4d5a-b56c-7cf9b3a430f3/cover.jpg',
+      cover: 'https://placehold.co/400x600/9C27B0/white?text=Jujutsu+Kaisen',
       favorite: false,
-      inLibrary: true,
-      categories: ['reading'],
-      lastReadAt: Date.now() - 7200000, // 2 hours ago
-      unreadCount: 12,
+      inLibrary: false,
+      categories: [],
+      unreadCount: 0,
     },
     {
       id: 'mangadex-4',
@@ -79,11 +76,10 @@ export async function seedMockData() {
       description: 'Denji is a young boy who works as a Devil Hunter with the help of Pochita, a dog-like devil with chainsaw abilities.',
       genre: ['Action', 'Comedy', 'Horror', 'Supernatural'],
       status: MangaStatus.COMPLETED,
-      cover: 'https://uploads.mangadex.org/covers/a96676e5-8ae2-425e-b549-7f15dd34a6d8/cover.jpg',
-      favorite: true,
-      inLibrary: true,
-      categories: ['completed'],
-      lastReadAt: Date.now() - 172800000, // 2 days ago
+      cover: 'https://placehold.co/400x600/E91E63/white?text=Chainsaw+Man',
+      favorite: false,
+      inLibrary: false,
+      categories: [],
       unreadCount: 0,
     },
     {
@@ -96,12 +92,11 @@ export async function seedMockData() {
       description: 'In a world where people with superpowers are the norm, Izuku Midoriya has dreams of one day becoming a Hero despite being bullied for not having a Quirk.',
       genre: ['Action', 'School Life', 'Superhero'],
       status: MangaStatus.ONGOING,
-      cover: 'https://uploads.mangadex.org/covers/4c4b2d8e-f2d3-4d9e-9b3a-3e2c8f8d9e0a/cover.jpg',
+      cover: 'https://placehold.co/400x600/4CAF50/white?text=My+Hero+Academia',
       favorite: false,
-      inLibrary: true,
-      categories: ['reading'],
-      lastReadAt: Date.now() - 259200000, // 3 days ago
-      unreadCount: 8,
+      inLibrary: false,
+      categories: [],
+      unreadCount: 0,
     },
     {
       id: 'mangadex-6',
@@ -113,57 +108,19 @@ export async function seedMockData() {
       description: 'Since ancient times, rumors have abounded of man-eating demons lurking in the woods. Tanjiro Kamado lives in the mountains with his family.',
       genre: ['Action', 'Historical', 'Supernatural'],
       status: MangaStatus.COMPLETED,
-      cover: 'https://uploads.mangadex.org/covers/9b0d9c7e-7c9a-4e7e-9e0a-7e9c7e9c7e9c/cover.jpg',
+      cover: 'https://placehold.co/400x600/00BCD4/white?text=Demon+Slayer',
       favorite: false,
-      inLibrary: true,
-      categories: ['plan-to-read'],
-      unreadCount: 205,
+      inLibrary: false,
+      categories: [],
+      unreadCount: 0,
     },
   ]
 
-  // Mock Chapters for One Piece (first 10 chapters)
-  const mockChapters: Chapter[] = []
-  for (let i = 1; i <= 10; i++) {
-    mockChapters.push({
-      id: `mangadex-1-ch-${i}`,
-      mangaId: 'mangadex-1',
-      sourceId: 'mangadex',
-      url: `https://mangadex.org/chapter/${i}`,
-      name: `Chapter ${i}: ${getChapterTitle(i)}`,
-      chapterNumber: i,
-      scanlator: 'MangaStream',
-      read: i <= 5,
-      bookmark: false,
-      lastPageRead: i <= 5 ? 20 : 0,
-      pagesCount: 20,
-      dateUpload: Date.now() - (10 - i) * 86400000,
-      dateFetch: Date.now(),
-    })
-  }
-
-  // Add data to database
+  // Add data to database (no chapters - they'll be fetched from source when user adds manga)
   await db.manga.bulkAdd(mockManga)
-  await db.chapters.bulkAdd(mockChapters)
 
   console.log('Mock data seeded successfully!')
-  console.log(`Added ${mockManga.length} manga and ${mockChapters.length} chapters`)
-}
-
-// Helper function for chapter titles
-function getChapterTitle(num: number): string {
-  const titles = [
-    'Romance Dawn',
-    'That Man "Straw Hat Luffy"',
-    'Introducing "Pirate Hunter Roronoa Zoro"',
-    'The Great Swordsman Appears',
-    'The King of the Pirates and the Master Swordsman',
-    'The First Person',
-    'Friends',
-    'Nami',
-    'The Honorable Liar Captain Usopp',
-    'The Weirdest Guy Ever',
-  ]
-  return titles[num - 1] || `Chapter ${num}`
+  console.log(`Added ${mockManga.length} manga (not in library yet)`)
 }
 
 /**

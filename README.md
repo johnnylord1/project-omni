@@ -67,7 +67,7 @@ All colors are CSS variables for runtime theming.
 
 - [x] **Phase 1:** Foundation & Theming System
 - [x] **Phase 2:** Local Database (Dexie)
-- [ ] **Phase 3:** Source Engine
+- [x] **Phase 3:** Source Engine
 - [ ] **Phase 4:** UI Implementation (Library & Browse)
 - [ ] **Phase 5:** Readers (Manga & Novel)
 - [ ] **Phase 6:** Settings & Advanced Features
@@ -84,6 +84,18 @@ All colors are CSS variables for runtime theming.
 - **Downloads:** Offline reading support
 
 All data is stored **locally** - no external backend required.
+
+## 🔌 Source Engine
+
+**Strategy Pattern Architecture (Paperback/Suwatte style)**
+
+- **ISource Interface:** Common contract for all sources
+- **SourceManager:** Central registry and source access
+- **Mock MangaDex:** Fully functional test source with 8+ manga
+- **Transformers:** Convert source data → database entities
+- **React Hooks:** `useSourceSearch`, `useAddToLibrary`, `useRefreshManga`
+
+Browse and add manga from sources to your library!
 
 ## 🔧 Available Hooks
 
@@ -112,5 +124,5 @@ MIT License - Open Source
 
 ---
 
-**Status:** Phase 2 Complete ✅
+**Status:** Phase 3 Complete ✅
 

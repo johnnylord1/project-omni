@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Library as LibraryIcon, Plus, Search, Filter } from 'lucide-react'
-import { useLibrary } from '../../../hooks/useLibrary'
+import { Library as LibraryIcon, Plus, Search, Filter, X } from 'lucide-react'
+import { useLibrary, useMangaActions } from '../../../hooks/useLibrary'
 import { seedMockData, clearMockData } from '../../../db/mockData'
 import MangaCard from '../../../components/shared/MangaCard'
 
 function LibraryPage() {
   const { manga, isLoading } = useLibrary()
+  const { removeFromLibrary } = useMangaActions()
   const [isSeeded, setIsSeeded] = useState(false)
 
   useEffect(() => {
@@ -24,6 +25,12 @@ function LibraryPage() {
     await clearMockData()
     await seedMockData()
     setIsSeeded(true)
+  }
+
+  const handleRemoveFromLibrary = async (mangaId: string, title: string) => {
+    if (confirm(`Remove "${title}" from library?`)) {
+      await removeFromLibrary(mangaId)
+    }
   }
 
   if (isLoading) {
@@ -96,11 +103,23 @@ function LibraryPage() {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {manga.map((item) => (
-              <MangaCard
-                key={item.id}
-                manga={item}
-                onClick={() => console.log('Clicked:', item.title)}
-              />
+              <div key={item.id} className="relative group">
+                <MangaCard
+                  manga={item}
+                  onClick={() => console.log('Clicked:', item.title)}
+                />
+                {/* Remove from Library Button - Same position as + button in Browse */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleRemoveFromLibrary(item.id, item.title)
+                  }}
+                  className="absolute top-2 left-2 bg-error/90 backdrop-blur-sm text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-lg"
+                  title="Remove from Library"
+                >
+                  <X size={20} strokeWidth={2.5} />
+                </button>
+              </div>
             ))}
           </div>
         )}

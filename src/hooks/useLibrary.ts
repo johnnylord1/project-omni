@@ -8,11 +8,11 @@ import type { Manga } from '../types/manga'
  */
 export function useLibrary() {
   const manga = useLiveQuery(
-    () => db.manga
-      .where('inLibrary')
-      .equals(1)
-      .reverse()
-      .sortBy('lastReadAt'),
+    async () => {
+      const allManga = await db.manga.toArray()
+      const libraryManga = allManga.filter(m => m.inLibrary)
+      return libraryManga.sort((a, b) => (b.lastReadAt || 0) - (a.lastReadAt || 0))
+    },
     []
   )
 
@@ -27,10 +27,12 @@ export function useLibrary() {
  */
 export function useFavorites() {
   const manga = useLiveQuery(
-    () => db.manga
-      .where('favorite')
-      .equals(1)
-      .sortBy('title'),
+    async () => {
+      const allManga = await db.manga.toArray()
+      return allManga
+        .filter(m => m.favorite)
+        .sort((a, b) => a.title.localeCompare(b.title))
+    },
     []
   )
 

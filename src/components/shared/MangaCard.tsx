@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Heart, BookOpen } from 'lucide-react'
 import type { Manga } from '../../types/manga'
 
@@ -7,24 +8,41 @@ interface MangaCardProps {
 }
 
 function MangaCard({ manga, onClick }: MangaCardProps) {
+  const [imageError, setImageError] = useState(false)
+  const [imageLoading, setImageLoading] = useState(true)
+
   return (
     <div
-      className="relative group cursor-pointer rounded-xl overflow-hidden bg-surface-variant transition-transform hover:scale-105"
+      className="relative group cursor-pointer rounded-xl overflow-hidden bg-surface-variant transition-all hover:scale-[1.02] hover:shadow-lg"
       onClick={onClick}
       style={{ aspectRatio: '2/3' }}
     >
       {/* Cover Image */}
       <div className="w-full h-full bg-surface-variant">
-        {manga.cover ? (
-          <img
-            src={manga.cover}
-            alt={manga.title}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
+        {manga.cover && !imageError ? (
+          <>
+            {imageLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-surface-variant animate-pulse">
+                <BookOpen size={48} className="text-on-surface-variant opacity-30" />
+              </div>
+            )}
+            <img
+              src={manga.cover}
+              alt={manga.title}
+              className={`w-full h-full object-cover transition-opacity ${
+                imageLoading ? 'opacity-0' : 'opacity-100'
+              }`}
+              loading="lazy"
+              onLoad={() => setImageLoading(false)}
+              onError={() => {
+                setImageError(true)
+                setImageLoading(false)
+              }}
+            />
+          </>
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-on-surface-variant">
-            <BookOpen size={48} />
+          <div className="w-full h-full flex items-center justify-center text-on-surface-variant bg-surface">
+            <BookOpen size={48} strokeWidth={1.5} />
           </div>
         )}
       </div>
