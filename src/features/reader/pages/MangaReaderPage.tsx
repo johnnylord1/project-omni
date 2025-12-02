@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Settings, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useManga } from '../../../hooks/useLibrary'
@@ -22,194 +22,216 @@ function MangaReaderPage() {
   const [showSettings, setShowSettings] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
+  // Use ref to track current page without causing re-renders
+  const currentPageRef = useRef(0)
+  const saveTimerRef = useRef<NodeJS.Timeout | null>(null)
+  
   // Reader settings
   const { showPageNumber, backgroundColor, invertColors, readingMode } = useReaderStore()
 
   // Find current chapter
-  const currentChapter = chapters.find(ch => ch.id === chapterId)
   const currentChapterIndex = chapters.findIndex(ch => ch.id === chapterId)
-  const hasNextChapter = currentChapterIndex < chapters.length - 1
-  const hasPrevChapter = currentChapterIndex > 0
+  const currentChapter = chapters[currentChapterIndex]
 
-  // Scroll to page helper
-  const scrollToPage = useCallback((pageIndex: number) => {
-    const pageElement = document.getElementById(`page-${pageIndex}`)
-    if (pageElement) {
-      pageElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      setCurrentPage(pageIndex)
-    }
-  }, [])
-
-  // Fetch pages for current chapter (only when chapter ID changes)
+  // Load pages for current chapter ONLY
   useEffect(() => {
     const fetchPages = async () => {
       if (!manga || !chapterId) return
 
-      console.log('[Reader] Fetching pages for chapter:', chapterId)
+      console.log('[Reader] Loading chapter:', chapterId)
       setIsLoading(true)
       setError(null)
+      setPages([])
 
       try {
         const source = sourceManager.getSource(manga.sourceId)
-        if (!source) {
-          throw new Error('Source not found')
-        }
+        if (!source) throw new Error('Source not found')
 
-        // Extract source-specific chapter ID
         const sourceChapterId = chapterId.replace(`${manga.sourceId}-`, '')
         const pageUrls = await source.getPageList(sourceChapterId)
         
         console.log('[Reader] Loaded', pageUrls.length, 'pages')
         setPages(pageUrls)
         
-        // Resume from last read page (only on initial load)
-        if (currentChapter && currentChapter.lastPageRead > 0) {
-          console.log('[Reader] Resuming from page', currentChapter.lastPageRead)
-          const resumePage = currentChapter.lastPageRead
-          setCurrentPage(resumePage)
-          
-          // Scroll to resume page after images load
-          setTimeout(() => {
-            scrollToPage(resumePage)
-          }, 500)
-        } else {
-          setCurrentPage(0)
-        }
+        // Set starting page
+        const startPage = (currentChapter?.lastPageRead || 0)
+        setCurrentPage(startPage)
+        currentPageRef.current = startPage
         
         setIsLoading(false)
+        
+        // Scroll to resume page (vertical mode only)
+        if (readingMode === 'vertical' || readingMode === 'webtoon') {
+          setTimeout(() => {
+            const el = document.getElementById(`page-${startPage}`)
+            el?.scrollIntoView({ behavior: 'auto', block: 'start' })
+          }, 100)
+        }
       } catch (err) {
-        console.error('Failed to fetch pages:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load pages')
+        console.error('[Reader] Failed:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load')
         setIsLoading(false)
       }
     }
 
     fetchPages()
-  }, [manga, chapterId, scrollToPage]) // Only re-fetch when chapterId changes!
+  }, [chapterId, manga?.sourceId, readingMode])
 
-  // Save progress when page changes (debounced to prevent excessive updates)
-  useEffect(() => {
-    if (!chapterId || pages.length === 0 || currentPage < 0) return
+  // Save progress using ref (doesn't cause re-renders)
+  const saveProgress = useCallback((page: number) => {
+    if (!chapterId || pages.length === 0) return
 
-    console.log('[Reader] Current page:', currentPage + 1, '/', pages.length)
+    // Clear existing timer
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current)
+    }
 
-    const saveProgress = async () => {
-      console.log('[Reader] Saving progress: page', currentPage)
-      await updateProgress(chapterId, currentPage)
+    // Debounce save
+    saveTimerRef.current = setTimeout(async () => {
+      console.log('[Reader] Saving progress: page', page)
+      await updateProgress(chapterId, page)
 
-      // Mark as read if on last page
-      if (currentPage >= pages.length - 1) {
-        console.log('[Reader] Last page reached, marking as read')
+      // Mark as read if last page
+      if (page >= pages.length - 1) {
+        console.log('[Reader] Marking as read')
         await markAsRead(chapterId)
       }
-    }
+    }, 2000)
+  }, [chapterId, pages.length, updateProgress, markAsRead])
 
-    // Debounce progress saving to prevent spam
-    const timer = setTimeout(saveProgress, 2000)
-    return () => clearTimeout(timer)
-  }, [chapterId, currentPage, pages.length]) // Don't include updateProgress/markAsRead to prevent loops
-
-  // Navigation handlers
-  const goToNextPage = useCallback(() => {
-    if (currentPage < pages.length - 1) {
-      // Go to next page in current chapter
-      scrollToPage(currentPage + 1)
-    } else if (hasNextChapter) {
-      // Go to next chapter (chapters are in reverse order, so -1 goes to higher chapter number)
-      const nextChapter = chapters[currentChapterIndex - 1]
-      console.log('[Reader] Moving to next chapter:', nextChapter.name)
-      navigate(`/reader/${mangaId}/${nextChapter.id}`)
-    }
-  }, [currentPage, pages.length, hasNextChapter, chapters, currentChapterIndex, mangaId, navigate, scrollToPage])
-
-  const goToPrevPage = useCallback(() => {
-    if (currentPage > 0) {
-      // Go to previous page in current chapter
-      scrollToPage(currentPage - 1)
-    } else if (hasPrevChapter) {
-      // Go to previous chapter (chapters are in reverse order, so +1 goes to lower chapter number)
-      const prevChapter = chapters[currentChapterIndex + 1]
-      console.log('[Reader] Moving to previous chapter:', prevChapter.name)
-      navigate(`/reader/${mangaId}/${prevChapter.id}`)
-    }
-  }, [currentPage, hasPrevChapter, chapters, currentChapterIndex, mangaId, navigate, scrollToPage])
-
-  // Keyboard navigation
+  // Track scroll position in vertical mode (using ref to avoid loops)
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-        goToNextPage()
-      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-        goToPrevPage()
-      } else if (e.key === 'Escape') {
-        navigate(-1)
+    if (readingMode !== 'vertical' && readingMode !== 'webtoon') return
+    if (pages.length === 0) return
+
+    const container = document.getElementById('reader-container')
+    if (!container) return
+
+    let scrollTimer: NodeJS.Timeout | null = null
+
+    const handleScroll = () => {
+      if (scrollTimer) clearTimeout(scrollTimer)
+      
+      scrollTimer = setTimeout(() => {
+        // Find centered page
+        const scrollTop = container.scrollTop
+        const centerY = scrollTop + (window.innerHeight / 2)
+
+        // Check each page
+        for (let i = 0; i < pages.length; i++) {
+          const el = document.getElementById(`page-${i}`)
+          if (el) {
+            const top = el.offsetTop
+            const bottom = top + el.clientHeight
+            
+            if (centerY >= top && centerY <= bottom) {
+              if (currentPageRef.current !== i) {
+                console.log('[Reader] Page:', i + 1, '/', pages.length)
+                currentPageRef.current = i
+                setCurrentPage(i) // Update UI
+                saveProgress(i) // Save progress
+              }
+              break
+            }
+          }
+        }
+      }, 100) // Small debounce
+    }
+
+    container.addEventListener('scroll', handleScroll, { passive: true })
+    return () => {
+      if (scrollTimer) clearTimeout(scrollTimer)
+      container.removeEventListener('scroll', handleScroll)
+    }
+  }, [pages.length, readingMode, saveProgress])
+
+  // Update ref when page changes via buttons
+  useEffect(() => {
+    currentPageRef.current = currentPage
+    saveProgress(currentPage)
+  }, [currentPage, saveProgress])
+
+  // Navigation
+  const goToNext = useCallback(() => {
+    if (currentPage < pages.length - 1) {
+      setCurrentPage(prev => prev + 1)
+    } else {
+      // Next chapter
+      const nextIdx = currentChapterIndex - 1
+      if (nextIdx >= 0) {
+        navigate(`/reader/${mangaId}/${chapters[nextIdx].id}`)
       }
     }
+  }, [currentPage, pages.length, currentChapterIndex, chapters, mangaId, navigate])
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [goToNextPage, goToPrevPage, navigate])
-
-  // Tap zones for navigation
-  const handleTapZone = (zone: 'left' | 'center' | 'right') => {
-    if (zone === 'left') {
-      goToPrevPage()
-    } else if (zone === 'right') {
-      goToNextPage()
+  const goToPrev = useCallback(() => {
+    if (currentPage > 0) {
+      setCurrentPage(prev => prev - 1)
     } else {
-      setShowControls(!showControls)
+      // Previous chapter
+      const prevIdx = currentChapterIndex + 1
+      if (prevIdx < chapters.length) {
+        navigate(`/reader/${mangaId}/${chapters[prevIdx].id}`)
+      }
     }
-  }
+  }, [currentPage, currentChapterIndex, chapters, mangaId, navigate])
+
+  // Keyboard
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') goToNext()
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') goToPrev()
+      else if (e.key === 'Escape') navigate(`/manga/${mangaId}`)
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [goToNext, goToPrev, navigate, mangaId])
+
+  // Tap zones
+  const handleTap = useCallback((zone: 'left' | 'center' | 'right') => {
+    if (zone === 'center') {
+      setShowControls(prev => !prev)
+    } else if (readingMode === 'rtl') {
+      zone === 'left' ? goToNext() : goToPrev()
+    } else {
+      zone === 'left' ? goToPrev() : goToNext()
+    }
+  }, [readingMode, goToNext, goToPrev])
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
+      <div className="fixed inset-0 flex items-center justify-center" style={{ backgroundColor }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+          <p className="text-white">Loading chapter...</p>
+        </div>
       </div>
     )
   }
 
-  if (error) {
+  if (error || !currentChapter || pages.length === 0) {
     return (
-      <div className="fixed inset-0 bg-background flex flex-col items-center justify-center p-8 text-center">
-        <h2 className="text-xl font-semibold text-on-surface mb-2">Failed to load chapter</h2>
-        <p className="text-on-surface-variant mb-6">{error}</p>
+      <div className="fixed inset-0 flex flex-col items-center justify-center p-8" style={{ backgroundColor }}>
+        <h2 className="text-xl font-semibold text-white mb-4">{error || 'Chapter not found'}</h2>
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate(`/manga/${mangaId}`)}
           className="px-6 py-3 bg-primary text-on-primary rounded-full font-medium"
         >
-          Go Back
-        </button>
-      </div>
-    )
-  }
-
-  if (!currentChapter) {
-    return (
-      <div className="fixed inset-0 bg-background flex flex-col items-center justify-center p-8 text-center">
-        <h2 className="text-xl font-semibold text-on-surface mb-2">Chapter not found</h2>
-        <button
-          onClick={() => navigate(-1)}
-          className="px-6 py-3 bg-primary text-on-primary rounded-full font-medium"
-        >
-          Go Back
+          Back to Manga
         </button>
       </div>
     )
   }
 
   return (
-    <div 
-      className="fixed inset-0 flex flex-col"
-      style={{ backgroundColor }}
-    >
-      {/* Top Bar (Collapsible) */}
+    <div className="fixed inset-0 flex flex-col" style={{ backgroundColor }}>
+      {/* Top Bar */}
       {showControls && (
-        <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/80 to-transparent z-20 p-4">
+        <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/90 to-transparent z-30 p-4">
           <div className="flex items-center justify-between text-white">
             <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-2 hover:text-primary transition-colors"
+              onClick={() => navigate(`/manga/${mangaId}`)}
+              className="flex items-center gap-2 hover:text-primary transition-colors p-2"
             >
               <ArrowLeft size={24} />
               <span className="font-medium hidden sm:inline">Back</span>
@@ -237,138 +259,90 @@ function MangaReaderPage() {
         </div>
       )}
 
-      {/* Reader Area - Different modes */}
-      {(readingMode === 'vertical' || readingMode === 'webtoon') && (
-        /* Vertical/Webtoon Mode - Continuous Scroll */
+      {/* Reader Area */}
+      {(readingMode === 'vertical' || readingMode === 'webtoon') ? (
         <div 
-          className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth"
           id="reader-container"
+          className="flex-1 overflow-y-auto overflow-x-hidden"
         >
           <div className={readingMode === 'webtoon' ? 'max-w-2xl mx-auto' : 'max-w-4xl mx-auto'}>
-            {pages.map((pageUrl, index) => (
+            {pages.map((url, idx) => (
               <div
-                key={index}
-                id={`page-${index}`}
-                className="relative"
-                onClick={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect()
-                  const x = e.clientX - rect.left
-                  const width = rect.width
-                  
-                  if (x < width * 0.3) {
-                    handleTapZone('left')
-                  } else if (x > width * 0.7) {
-                    handleTapZone('right')
-                  } else {
-                    handleTapZone('center')
-                  }
-                }}
+                key={idx}
+                id={`page-${idx}`}
+                onClick={() => handleTap('center')}
               >
                 <img
-                  src={pageUrl}
-                  alt={`Page ${index + 1}`}
+                  src={url}
+                  alt={`Page ${idx + 1}`}
                   className={`w-full h-auto block ${invertColors ? 'invert' : ''}`}
                   loading="lazy"
                 />
-                
-                {/* Page number overlay */}
                 {showControls && showPageNumber && (
-                  <div className="absolute bottom-2 right-2 bg-black/60 text-white px-3 py-1 rounded-full text-sm">
-                    {index + 1} / {pages.length}
+                  <div className="absolute bottom-2 right-2 bg-black/70 text-white px-3 py-1 rounded-full text-sm">
+                    {idx + 1} / {pages.length}
                   </div>
                 )}
               </div>
             ))}
           </div>
         </div>
-      )}
-
-      {(readingMode === 'ltr' || readingMode === 'rtl') && (
-        /* Paged Mode - Left to Right or Right to Left */
-        <div className="flex-1 flex items-center justify-center overflow-hidden">
-          <div 
-            className="relative w-full h-full flex items-center justify-center"
-            onClick={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect()
-              const x = e.clientX - rect.left
-              const width = rect.width
-              
-              if (readingMode === 'ltr') {
-                // LTR: Left = prev, Right = next
-                if (x < width * 0.3) {
-                  handleTapZone('left')
-                } else if (x > width * 0.7) {
-                  handleTapZone('right')
-                } else {
-                  handleTapZone('center')
-                }
-              } else {
-                // RTL: Right = prev, Left = next (reversed)
-                if (x < width * 0.3) {
-                  handleTapZone('right')
-                } else if (x > width * 0.7) {
-                  handleTapZone('left')
-                } else {
-                  handleTapZone('center')
-                }
-              }
-            }}
-          >
-            <img
-              src={pages[currentPage]}
-              alt={`Page ${currentPage + 1}`}
-              className={`max-w-full max-h-full object-contain ${invertColors ? 'invert' : ''}`}
-            />
-            
-            {/* Page number overlay */}
-            {showControls && showPageNumber && (
-              <div className="absolute bottom-4 right-4 bg-black/60 text-white px-4 py-2 rounded-full">
-                {currentPage + 1} / {pages.length}
-              </div>
-            )}
-          </div>
+      ) : (
+        <div 
+          className="flex-1 flex items-center justify-center"
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect()
+            const x = e.clientX - rect.left
+            const pct = x / rect.width
+            handleTap(pct < 0.3 ? 'left' : pct > 0.7 ? 'right' : 'center')
+          }}
+        >
+          <img
+            src={pages[currentPage]}
+            alt={`Page ${currentPage + 1}`}
+            className={`max-w-full max-h-full object-contain ${invertColors ? 'invert' : ''}`}
+          />
+          {showControls && showPageNumber && (
+            <div className="absolute bottom-8 right-8 bg-black/70 text-white px-4 py-2 rounded-full">
+              {currentPage + 1} / {pages.length}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Bottom Navigation (Collapsible) - Only show in paged modes */}
-      {showControls && (readingMode === 'ltr' || readingMode === 'rtl') && (
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent z-20 p-4">
+      {/* Bottom Bar */}
+      {showControls && (
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent z-30 p-4">
           <div className="flex items-center justify-between text-white max-w-4xl mx-auto">
             <button
-              onClick={goToPrevPage}
-              disabled={currentPage === 0 && !hasPrevChapter}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              onClick={goToPrev}
+              disabled={currentPage === 0 && currentChapterIndex >= chapters.length - 1}
+              className="flex items-center gap-2 px-5 py-2.5 bg-white/10 rounded-full hover:bg-white/20 transition-colors disabled:opacity-30"
             >
               <ChevronLeft size={20} />
-              <span className="hidden sm:inline">Previous</span>
+              <span className="hidden sm:inline font-medium">Previous</span>
             </button>
 
             <div className="text-center">
-              <p className="text-sm text-white/70">
-                Page {currentPage + 1} of {pages.length}
-              </p>
-              <p className="text-xs text-white/50">
-                {currentChapter?.name}
-              </p>
+              <p className="text-base font-medium">Page {currentPage + 1} of {pages.length}</p>
+              <p className="text-xs text-white/60 mt-1">{currentChapter.name}</p>
             </div>
 
             <button
-              onClick={goToNextPage}
-              disabled={currentPage >= pages.length - 1 && !hasNextChapter}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              onClick={goToNext}
+              disabled={currentPage >= pages.length - 1 && currentChapterIndex === 0}
+              className="flex items-center gap-2 px-5 py-2.5 bg-white/10 rounded-full hover:bg-white/20 transition-colors disabled:opacity-30"
             >
-              <span className="hidden sm:inline">Next</span>
+              <span className="hidden sm:inline font-medium">Next</span>
               <ChevronRight size={20} />
             </button>
           </div>
         </div>
       )}
 
-      {/* Reader Settings Panel */}
       <ReaderSettings isOpen={showSettings} onClose={() => setShowSettings(false)} />
     </div>
   )
 }
 
 export default MangaReaderPage
-
